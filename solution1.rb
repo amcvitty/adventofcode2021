@@ -1,21 +1,24 @@
 data =
   STDIN.read
     .split("\n")
-    .map(&:to_i)
 
-prevsum = 9999999999
-window = []
-increases = 0
-data.each do |num|
-  window.shift if window.size == 3
-  window.push num
-  print "Window: #{window}, sum: #{window.sum}"
-  if window.size == 3 && window.sum > prevsum
-    increases += 1
-    print " - Increase!"
+h = 0
+d = 0
+aim = 0
+data.each do |line|
+  (direction, amount) = line.split(" ")
+  amount = amount.to_i
+  case direction
+  when "forward"
+    h += amount
+    d += aim * amount
+  when "down"
+    aim += amount
+  when "up"
+    aim -= amount
+  else
+    nil
   end
-  prevsum = window.sum if window.size == 3
-
-  puts
 end
-puts increases
+puts "Horizontal #{h}, Depth #{d}"
+puts "product: #{h * d}"
