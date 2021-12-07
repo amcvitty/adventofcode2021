@@ -1,12 +1,16 @@
 require_relative "lib.rb"
-ages = $stdin.read.split(",").map(&:to_i)
+positions = $stdin.read.split(",").map(&:to_i)
 
-state = count_by_age(ages)
-puts state.to_s
+max_pos = positions.max
+min_pos = positions.min
 
-256.times do
-  state = iterate(state)
-  puts state.to_s
+solutions = []
+(min_pos..max_pos).each do |target|
+  fuel = 0
+  positions.each do |pos|
+    fuel += fuel_for((pos - target).abs)
+  end
+  solutions << fuel
 end
-puts
-puts "Fish count: #{state.sum}"
+
+puts solutions.min
