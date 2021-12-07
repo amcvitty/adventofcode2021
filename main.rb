@@ -1,17 +1,12 @@
 require_relative "lib.rb"
-realdata = $stdin.read.split("\n")
+ages = $stdin.read.split(",").map(&:to_i)
 
-lines = realdata.map(&method(:parseline))
+state = count_by_age(ages)
+puts state.to_s
 
-board = Board.new(1000, 1000)
-lines.each { |l| board.draw(l) }
-board.print
+256.times do
+  state = iterate(state)
+  puts state.to_s
+end
 puts
-puts board.count_danger_level(2)
-
-# realdata.each do |d|
-#   print d
-#   print " "
-#   print parseline(d).vector
-#   puts
-# end
+puts "Fish count: #{state.sum}"
