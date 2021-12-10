@@ -7,6 +7,7 @@ grid = lines.map { |line|
 max_row = grid.size - 1
 max_col = grid[0].size - 1
 risk = 0
+low_points = []
 (0..max_row).each do |r|
   (0..max_col).each do |c|
     lowest = true
@@ -17,11 +18,21 @@ risk = 0
     lowest = false if c < max_col && grid[r][c + 1] <= me
     if lowest
       risk += 1 + me
-      print me, " "
-    else
-      print "  "
+      low_points << Point.new(r, c, max_row, max_col)
     end
   end
-  puts
 end
+print_grid_with_points(grid, low_points)
+puts "-----"
+puts "Part 1: "
 puts "Risk: #{risk}"
+puts low_points.to_s
+puts "-----"
+basin_sizes = low_points.map do |low_point|
+  b = basin(low_point, grid)
+  puts "Basin size: #{b.size}"
+  print_grid_with_points(grid, b)
+  puts "-----"
+  b.size
+end
+puts basin_sizes.sort.reverse.take(3).reduce(&:*)

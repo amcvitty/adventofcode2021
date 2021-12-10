@@ -1,25 +1,25 @@
 require_relative "../lib.rb"
 
-RSpec.describe "code" do
-  it "marks points " do
-    expect(sort_string("acb")).to eq "abc"
+RSpec.describe Point do
+  it "is equal " do
+    expect(Point.new(1, 2, 9, 9) == Point.new(1, 2, 9, 9)).to be true
   end
 
-  it "permutes" do
-    expect(permute_string("a")).to eq ["a"]
-    expect(permute_string("as")).to eq ["as", "sa"]
-    expect(permute_string("abc")).to eq ["abc", "acb", "bac", "bca", "cab", "cba"]
+  it "can be in a set" do
+    set = Set[
+      Point.new(1, 2, 9, 9),
+      Point.new(2, 2, 9, 9),
+      Point.new(4, 2, 9, 9),
+    ]
+    expect(set.size).to be 3
+    expect(set.include?(Point.new(2, 2, 9, 9))).to be_truthy
+
+    set << Point.new(2, 2, 9, 9)
+    expect(set.size).to eq 3
   end
 
-  it "translates " do
-    expect(translate("bac", "cab")).to eq "cba"
-  end
-
-  it "solves" do
-    digits = "be cfbegad cbdgef fgaecd cgeb fdcge agebfd fecdb fabcd edb".split(" ")
-    expect(permutation_solves("dgbcaef", digits)).to be_truthy
-  end
-  it "decodes whole line" do
-    expect(decode_line "be cfbegad cbdgef fgaecd cgeb fdcge agebfd fecdb fabcd edb | fdgacbe cefdb cefbgd gcbe").to eq 8394
+  it "adjacent" do
+    expect(Point.new(0, 5, 5, 5).adjacent_points.size).to eq 2
+    expect(Point.new(0, 0, 5, 5).adjacent_points.size).to eq 2
   end
 end
