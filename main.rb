@@ -10,8 +10,9 @@ putsline
 
 max_row = grid.size - 1
 max_col = grid[0].size - 1
-total_flashes = 0
-100.times do
+i = 0
+while count_flashes(grid) < 100
+  i += 1
   to_flash = Set[]
   (0..max_row).each { |r|
     (0..max_col).each { |c|
@@ -37,18 +38,6 @@ total_flashes = 0
     }
     grid[flashing.r][flashing.c] = 0
   end
-  flashes = 0
-  (0..max_row).each { |r|
-    (0..max_col).each { |c|
-      if grid[r][c] == 0
-        flashes += 1
-      end
-    }
-  }
-  total_flashes += flashes
-  putsline
-  puts grid.map(&:to_s)
-  puts "Flashes: #{flashes}"
+  flashes = count_flashes(grid)
+  puts "Flashes(#{i}): #{flashes}"
 end
-
-puts "Total Flashes: #{total_flashes}"
