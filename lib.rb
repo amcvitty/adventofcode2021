@@ -1,50 +1,29 @@
-def parse_line(line)
-  stack = []
-  line.chars.each do |c|
-    case c
-    when "(", "[", "{", "<"
-      stack.push c
-    when ")", "}", "]", ">"
-      if pair(stack.last) == c
-        stack.pop
-      else
-        return 0
-      end
-    end
-  end
+require "set"
 
-  remaining = stack.map { |c| pair(c) }
-  print remaining.reverse.join("")
-  s = score(remaining)
-  print " - "
-  print s
-  puts
-  s
+Point = Struct.new(:r, :c)
+
+def inc(grid)
+  grid = grid.each { |line|
+    line.each_with_index {
+      |_, i|
+      line[i] += 1
+    }
+  }
 end
 
-def pair(c)
-  case c
-  when "("
-    ")"
-  when "["
-    "]"
-  when "{"
-    "}"
-  when "<"
-    ">"
-  end
+def putsline
+  puts "---------"
 end
 
-# chars is an array that when reversed, completes
-# the line
-def score(chars)
-  sum = 0
-  while chars.size > 0
-    sum *= 5
-    sum += { ")" => 1,
-             "]" => 2,
-             "}" => 3,
-             ">" => 4 }[chars.pop]
-  end
-  sum
+def adjacent_points(r, c, max_row, max_col)
+  p = []
+  p << Point.new(r - 1, c - 1) if r > 0 && c > 0
+  p << Point.new(r - 1, c) if r > 0
+  p << Point.new(r - 1, c + 1) if r > 0 && c < max_col
+  p << Point.new(r, c - 1) if c > 0
+  p << Point.new(r, c + 1) if c < max_col
+  p << Point.new(r + 1, c - 1) if r < max_row && c > 0
+  p << Point.new(r + 1, c) if r < max_row
+  p << Point.new(r + 1, c + 1) if r < max_row && c < max_col
+  p
 end
