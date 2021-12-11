@@ -8,12 +8,18 @@ def parse_line(line)
       if pair(stack.last) == c
         stack.pop
       else
-        puts "Expected #{pair(stack.last)}, but found #{c} instead."
-        return score(c)
+        return 0
       end
     end
   end
-  return 0
+
+  remaining = stack.map { |c| pair(c) }
+  print remaining.reverse.join("")
+  s = score(remaining)
+  print " - "
+  print s
+  puts
+  s
 end
 
 def pair(c)
@@ -29,9 +35,16 @@ def pair(c)
   end
 end
 
-def score(c)
-  { ")" => 3,
-    "]" => 57,
-    "}" => 1197,
-    ">" => 25137 }[c]
+# chars is an array that when reversed, completes
+# the line
+def score(chars)
+  sum = 0
+  while chars.size > 0
+    sum *= 5
+    sum += { ")" => 1,
+             "]" => 2,
+             "}" => 3,
+             ">" => 4 }[chars.pop]
+  end
+  sum
 end
