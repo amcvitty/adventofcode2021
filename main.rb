@@ -28,20 +28,24 @@ end
 # puts $vs.to_s
 # puts $unique.to_s
 # puts $edges.map(&:to_s)
-s_node = $vs.index("start")
+# puts $edges[$vs.index("b")][$vs.index("b")]
+$s_node = $vs.index("start")
 $e_node = $vs.index("end")
 
-def visit(path)
+def visit(path, bonus)
   node = path.hd
   if node == $e_node
-    puts path.to_a.map { |n| $vs[n] }.to_s
+    puts path.to_a.map { |n| $vs[n] }.join ","
   else
     $edges[node].each_with_index do |edge, i|
       if edge && (!$unique[i] || !path.include?(i))
-        visit(path.cons(i))
+        visit(path.cons(i), bonus)
+      end
+      if edge && bonus.nil? && $unique[i] && path.include?(i) && i != $s_node
+        visit(path.cons(i), i)
       end
     end
   end
 end
 
-visit(List.new(s_node, nil))
+visit(List.new($s_node, nil), nil)
