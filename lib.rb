@@ -1,43 +1,34 @@
 require "set"
 
-Point = Struct.new(:r, :c)
+List = Struct.new(:hd, :tail) do
+  def cons(h)
+    List.new(h, self)
+  end
 
-def inc(grid)
-  grid = grid.each { |line|
-    line.each_with_index {
-      |_, i|
-      line[i] += 1
-    }
-  }
-end
+  def length
+    if tail.nil?
+      1
+    else
+      1 + tail.length()
+    end
+  end
 
-def putsline
-  puts "---------"
-end
+  def include?(i)
+    if hd == i
+      return true
+    elsif tail.nil?
+      false
+    else
+      tail.include?(i)
+    end
+  end
 
-def adjacent_points(r, c, max_row, max_col)
-  p = []
-  p << Point.new(r - 1, c - 1) if r > 0 && c > 0
-  p << Point.new(r - 1, c) if r > 0
-  p << Point.new(r - 1, c + 1) if r > 0 && c < max_col
-  p << Point.new(r, c - 1) if c > 0
-  p << Point.new(r, c + 1) if c < max_col
-  p << Point.new(r + 1, c - 1) if r < max_row && c > 0
-  p << Point.new(r + 1, c) if r < max_row
-  p << Point.new(r + 1, c + 1) if r < max_row && c < max_col
-  p
-end
-
-def count_flashes(grid)
-  flashes = 0
-  max_row = grid.size - 1
-  max_col = grid[0].size - 1
-  (0..max_row).each { |r|
-    (0..max_col).each { |c|
-      if grid[r][c] == 0
-        flashes += 1
-      end
-    }
-  }
-  flashes
+  # Returns it in reverse order...
+  def to_a
+    if tail == nil
+      [hd]
+    else
+      tail.to_a << hd
+    end
+  end
 end
