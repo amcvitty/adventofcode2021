@@ -1,34 +1,26 @@
-require "set"
+def px(points)
+  max_x = points.map(&:x).max
+  max_y = points.map(&:y).max
 
-List = Struct.new(:hd, :tail) do
-  def cons(h)
-    List.new(h, self)
-  end
-
-  def length
-    if tail.nil?
-      1
-    else
-      1 + tail.length()
+  (0..max_y).each do |y|
+    (0..max_x).each do |x|
+      if points.include? Point.new(x, y)
+        print "#"
+      else
+        print " "
+      end
     end
+    puts
   end
+end
 
-  def include?(i)
-    if hd == i
-      return true
-    elsif tail.nil?
-      false
+def fold(points, fold)
+  n = fold.n
+  points.map { |p|
+    if fold.axis == "y"
+      Point.new(p.x, p.y < n ? p.y : n - (p.y - n))
     else
-      tail.include?(i)
+      Point.new(p.x < n ? p.x : n - (p.x - n), p.y)
     end
-  end
-
-  # Returns it in reverse order...
-  def to_a
-    if tail == nil
-      [hd]
-    else
-      tail.to_a << hd
-    end
-  end
+  }.uniq
 end

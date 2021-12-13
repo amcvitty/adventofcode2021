@@ -1,51 +1,41 @@
 require_relative "lib.rb"
 lines = $stdin.read.split("\n")
 
-# $vs will store labels with each index
-$vs = []
-$unique = []
-lines.each do |line|
-  l1, l2 = line.split "-"
-  if !$vs.include? l1
-    $vs.push(l1)
-    $unique.push(l1.downcase == l1)
-  end
-  if !$vs.include? l2
-    $vs.push(l2)
-    $unique.push(l2.downcase == l2)
+Point = Struct.new(:x, :y) do
+  def inspect
+    "#{x},#{y}"
   end
 end
+Fold = Struct.new(:axis, :n)
 
-# Use adjacency matrix form
-$edges = Array.new($vs.size) { Array.new($vs.size, false) }
-
+coords = true
+points = []
+folds = []
 lines.each do |line|
-  l1, l2 = line.split "-"
-  $edges[$vs.index(l1)][$vs.index(l2)] = true
-  $edges[$vs.index(l2)][$vs.index(l1)] = true
-end
-
-# puts $vs.to_s
-# puts $unique.to_s
-# puts $edges.map(&:to_s)
-# puts $edges[$vs.index("b")][$vs.index("b")]
-$s_node = $vs.index("start")
-$e_node = $vs.index("end")
-
-def visit(path, bonus)
-  node = path.hd
-  if node == $e_node
-    puts path.to_a.map { |n| $vs[n] }.join ","
+  if line == ""
+    coords = false
+  elsif coords
+    x, y = line.split(",").map(&:to_i)
+    points << Point.new(x, y)
   else
-    $edges[node].each_with_index do |edge, i|
-      if edge && (!$unique[i] || !path.include?(i))
-        visit(path.cons(i), bonus)
-      end
-      if edge && bonus.nil? && $unique[i] && path.include?(i) && i != $s_node
-        visit(path.cons(i), i)
-      end
-    end
+    axis, n = /fold along (x|y)=(\d+)/.match(line).captures
+    folds << Fold.new(axis, n.to_i)
   end
 end
+points.sort_by! { |p| [p.x, p.y] }
 
-visit(List.new($s_node, nil), nil)
+puts points.to_s
+puts folds.to_s
+
+folds.each do |f|
+  points = fold(points, f)
+  # puts points.to_s
+  # puts "Points visible: : #{points.size}"
+end
+
+px(points)
+
+# points = fold(points, folds[1])
+# puts points.to_s
+# puts "Points visible: : #{points.size}"
+# px(points)
