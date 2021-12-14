@@ -1,26 +1,40 @@
-def px(points)
-  max_x = points.map(&:x).max
-  max_y = points.map(&:y).max
-
-  (0..max_y).each do |y|
-    (0..max_x).each do |x|
-      if points.include? Point.new(x, y)
-        print "#"
-      else
-        print " "
-      end
-    end
-    puts
+Rule = Struct.new(:pair, :ins) do
+  def inspect
+    "#{pair} => #{ins}"
   end
 end
 
-def fold(points, fold)
-  n = fold.n
-  points.map { |p|
-    if fold.axis == "y"
-      Point.new(p.x, p.y < n ? p.y : n - (p.y - n))
+def to_hashcount(str)
+  pairs = {}
+  (0..str.length - 2).each { |i|
+    pair = str[i, 2]
+    if pairs[pair]
+      pairs[pair] += 1
     else
-      Point.new(p.x < n ? p.x : n - (p.x - n), p.y)
+      pairs[pair] = 1
     end
-  }.uniq
+  }
+  pairs
+end
+
+def apply(template, rules)
+  insertions = Array.new(template.length, nil)
+  (0..template.length - 2).each do |i|
+    rules.each do |rule|
+      if template[i, 2] == rule.pair
+        insertions[i] = rule.ins
+      end
+    end
+  end
+  t2 = ""
+  (0..template.length - 1).each do |i|
+    t2 << template[i]
+    t2 << insertions[i] if !insertions[i].nil?
+  end
+  t2
+end
+
+def score(template)
+  all = template.chars.group_by(&:itself).values.map(&:size).sort
+  all.max - all.min
 end
