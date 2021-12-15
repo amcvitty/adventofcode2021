@@ -1,32 +1,29 @@
+require "set"
 Point = Struct.new(:r, :c) do
   def inspect
     "#{r},#{c}"
   end
 end
 
+# Actually supposed to be a priority queue
 class Queue
-  attr_accessor :max_row, :max_col, :dist, :visited
+  attr_accessor :points, :dist
 
-  def initialize(r, c, dist)
-    self.max_row = r - 1
-    self.max_col = c - 1
+  def initialize(dist)
+    self.points = Set[]
     self.dist = dist
-    self.visited = Array.new(r) { Array.new(c, false) }
   end
 
   def extract_min()
-    min = 9999999999
-    min_point = nil
-    (0..max_row).each { |r|
-      (0..max_col).each { |c|
-        if !visited[r][c] && dist[r][c] < min
-          min = dist[r][c]
-          min_point = Point.new(r, c)
-        end
-      }
+    p = points.min_by { |v|
+      dist[v.r][v.c]
     }
-    visited[min_point.r][min_point.c] = true unless min_point.nil?
-    min_point
+    points.delete(p)
+    p
+  end
+
+  def add(p)
+    points.add(p)
   end
 end
 
@@ -52,6 +49,24 @@ def def_chain(pred, r, c)
     c = p.c
   end
   chain
+end
+
+def explode_graph(vs, x)
+  vs2 = Array.new(vs.size * x) { Array.new(vs.size * x, 0) }
+  (0..x - 1).each { |r_adj|
+    (0..x - 1).each { |c_adj|
+      vs.each_with_index { |row, orig_r|
+        row.each_with_index { |orig_value, orig_c|
+          vs2[r_adj * vs.size + orig_r][c_adj * vs.size + orig_c] = wrap(orig_value + r_adj + c_adj)
+        }
+      }
+    }
+  }
+  vs2
+end
+
+def wrap(n)
+  (n - 1) % 9 + 1
 end
 
 # Rule = Struct.new(:pair, :ins) do

@@ -10,7 +10,14 @@ RSpec.describe "code" do
 
   it "Queue extracts mins and is mutable" do
     dist = [[1, 5], [3, 4]]
-    q = Queue.new(2, 2, dist)
+    q = Queue.new(
+      [
+        Point.new(0, 0),
+        Point.new(0, 1),
+        Point.new(1, 0),
+        Point.new(1, 1),
+      ], dist
+    )
 
     expect(q.extract_min()).to eq Point.new(0, 0)
 
@@ -21,5 +28,16 @@ RSpec.describe "code" do
     expect(q.extract_min()).to eq Point.new(1, 0)
     expect(q.extract_min()).to eq Point.new(0, 1)
     expect(q.extract_min).to be_nil
+  end
+
+  it "Explodes graphs" do
+    puts explode_graph([[1, 1], [1, 1]], 2).map(&:to_s)
+  end
+
+  it "wraps" do
+    expect(wrap(1)).to eq 1
+    expect(wrap(8)).to eq 8
+    expect(wrap(9)).to eq 9
+    expect(wrap(10)).to eq 1
   end
 end
