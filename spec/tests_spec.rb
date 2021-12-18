@@ -1,31 +1,76 @@
 require_relative "../lib.rb"
 
 RSpec.describe "code" do
-  it "parses hex " do
-    expect(PacketParser.new("D2FE28").parse).to eq [6, 4, 2021]
-  end
-  it "parses with subpackets 0" do
-    expect(PacketParser.new("38006F45291200").parse).to eq [1, 6, [[6, 4, 10], [2, 4, 20]]]
-  end
-  it "parses with subpackets 1" do
-    expect(PacketParser.new("EE00D40C823060").parse).to eq [7, 3, [[2, 4, 1], [4, 4, 2], [1, 4, 3]]]
+  it "to_s" do
+    expect(Leaf.new(1).to_s).to eq "1"
+    expect(Node.new(Leaf.new(1), Leaf.new(2)).to_s).to eq "[1,2]"
   end
 
-  it "calculates version_sums" do
-    expect(vsum PacketParser.new("8A004A801A8002F478").parse).to eq 16
-    expect(vsum PacketParser.new("620080001611562C8802118E34").parse).to eq 12
-    expect(vsum PacketParser.new("C0015000016115A2E0802F182340").parse).to eq 23
-    expect(vsum PacketParser.new("A0016C880162017C3686B18A3D4780").parse).to eq 31
+  it "sets parents" do
+    l = Leaf.new(1)
+    r = Leaf.new(1)
+    n = Node.new(l, r)
+    expect(l.parent).to eq n
+    expect(r.parent).to eq n
   end
 
-  it "evaluates packets" do
-    expect(evaluate PacketParser.new("C200B40A82").parse).to eq 3
-    expect(evaluate PacketParser.new("04005AC33890").parse).to eq 54
-    expect(evaluate PacketParser.new("880086C3E88112").parse).to eq 7
-    expect(evaluate PacketParser.new("CE00C43D881120").parse).to eq 9
-    expect(evaluate PacketParser.new("D8005AC2A8F0").parse).to eq 1
-    expect(evaluate PacketParser.new("F600BC2D8F").parse).to eq 0
-    expect(evaluate PacketParser.new("9C005AC2F8F0").parse).to eq 0
-    expect(evaluate PacketParser.new("9C0141080250320F1802104A08").parse).to eq 1
+  it "parses" do
+    node = PairParser.new("[1,2]").parse
+    expect(node.l.val).to eq 1
+    expect(node.r.val).to eq 2
+  end
+
+  it "parses & back to same string" do
+    str = "[[[0,[4,5]],[0,0]],[[[4,5],[2,6]],[9,5]]]"
+    expect(PairParser.new(str).parse.to_s).to eq str
+  end
+
+  it "compares" do
+    expect(Leaf.new(1) == Leaf.new(1)).to be_falsey
+  end
+
+  it "finds closest left" do
+    pair = PairParser.new("[[[[[9,8],1],2],3],4]").parse
+    leaf = pair.l.l.l.l.l
+    expect(leaf.val).to eq 9
+    expect(closest_left(leaf)).to be_nil
+
+    pair = PairParser.new("[7,[6,[5,[4,[3,2]]]]]").parse
+    leaf = pair.r.r.r.r.l
+    expect(leaf.val).to eq 3
+    expect(closest_left(leaf).val).to eq 4
+  end
+
+  # it "explodes" do
+  #   pair = PairParser.new("[[[[[9,8],1],2],3],4]").parse
+  #   explode(pair.l.l.l.l)
+  #   expect(pair.to_s).to eq "[[[[0,9],2],3],4]"
+  # end
+
+  # it "find_to_explode" do
+  #   pair = PairParser.new("[[[[[9,8],1],2],3],4]").parse
+  #   expect(find_to_explode(pair, 0).to_s).to eq "[9,8]"
+  # end
+
+  it "explodes" do
+    pair = PairParser.new("[[[[[9,8],1],2],3],4]").parse
+    explode(pair)
+    expect(pair.to_s).to eq "[[[[0,9],2],3],4]"
+
+    pair = PairParser.new("[7,[6,[5,[4,[3,2]]]]]").parse
+    explode(pair)
+    expect(pair.to_s).to eq "[7,[6,[5,[7,0]]]]"
+
+    pair = PairParser.new("[[6,[5,[4,[3,2]]]],1]").parse
+    explode(pair)
+    expect(pair.to_s).to eq "[[6,[5,[7,0]]],3]"
+
+    pair = PairParser.new("[[3,[2,[1,[7,3]]]],[6,[5,[4,[3,2]]]]]").parse
+    explode(pair)
+    expect(pair.to_s).to eq "[[3,[2,[8,0]]],[9,[5,[4,[3,2]]]]]"
+
+    pair = PairParser.new("[[3,[2,[8,0]]],[9,[5,[4,[3,2]]]]]").parse
+    explode(pair)
+    expect(pair.to_s).to eq "[[3,[2,[8,0]]],[9,[5,[7,0]]]]"
   end
 end
