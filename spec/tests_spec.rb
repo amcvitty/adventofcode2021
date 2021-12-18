@@ -24,6 +24,10 @@ RSpec.describe "code" do
     str = "[[[0,[4,5]],[0,0]],[[[4,5],[2,6]],[9,5]]]"
     expect(PairParser.new(str).parse.to_s).to eq str
   end
+  it "parses & back to same string with big_numbers" do
+    str = "[[[[0,7],4],[15,[0,13]]],[1,1]]"
+    expect(PairParser.new(str).parse.to_s).to eq str
+  end
 
   it "compares" do
     expect(Leaf.new(1) == Leaf.new(1)).to be_falsey
@@ -72,5 +76,18 @@ RSpec.describe "code" do
     pair = PairParser.new("[[3,[2,[8,0]]],[9,[5,[4,[3,2]]]]]").parse
     explode(pair)
     expect(pair.to_s).to eq "[[3,[2,[8,0]]],[9,[5,[7,0]]]]"
+  end
+
+  it "splits" do
+    pair = PairParser.new("[[[[0,7],4],[15,[0,13]]],[1,1]]").parse
+    split_pair(pair)
+    expect(pair.to_s).to eq "[[[[0,7],4],[[7,8],[0,13]]],[1,1]]"
+    split_pair(pair)
+    expect(pair.to_s).to eq "[[[[0,7],4],[[7,8],[0,[6,7]]]],[1,1]]"
+  end
+
+  it "Mag" do
+    pair = PairParser.new("[[[[8,7],[7,7]],[[8,6],[7,7]]],[[[0,7],[6,6]],[8,7]]]").parse
+    expect(magnitude(pair)).to eq 3488
   end
 end

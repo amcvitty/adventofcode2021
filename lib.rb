@@ -15,37 +15,10 @@ class PairParser
       expect("]")
       return Node.new(l, r)
     else
-      val = read_char
+      val = read_val
       return Leaf.new(val.to_i)
     end
   end
-
-  # version = read_digits(3)
-  # type_id = read_digits(3)
-  # if type_id == 4
-  #   literal = read_literal
-  #   return [version, type_id, literal]
-  # else
-  #   length_type_id = read_digits(1)
-  #   if length_type_id == 0
-  #     # length is a 15-bit number - number of bits in the sub-packets.
-  #     length = read_digits(15)
-  #     max_length = i + length
-  #     packets = []
-  #     while i < max_length
-  #       packets << parse
-  #     end
-  #     return [version, type_id, packets]
-  #   else
-  #     # length is a 11-bit number -  sub-packets immediately contained by this packet.
-  #     packets_to_read = read_digits(11)
-  #     packets = []
-  #     packets_to_read.times do
-  #       packets << parse
-  #     end
-  #     return [version, type_id, packets]
-  #   end
-  # end
 
   def peek
     str[i]
@@ -54,6 +27,14 @@ class PairParser
   def read_char
     v = str[i]
     @i += 1
+    v
+  end
+
+  def read_val
+    v = 0
+    while DIGITS.include? peek
+      v = v * 10 + read_char.to_i
+    end
     v
   end
 
@@ -167,5 +148,49 @@ def explode_node(n)
     n.parent.r = Leaf.new(0)
   else
     throw("Orphan?")
+  end
+end
+
+def split_pair(pair)
+  if pair.is_leaf
+    if pair.val < 10
+      return false
+    else
+      split_leaf pair
+      return true
+    end
+  else
+    return split_pair(pair.l) || split_pair(pair.r)
+  end
+end
+
+def split_leaf(leaf)
+  l = leaf.val / 2
+  r = leaf.val.odd? ? (leaf.val + 1) / 2 : leaf.val / 2
+  node = Node.new(
+    Leaf.new(l),
+    Leaf.new(r)
+  )
+  if leaf.parent.l == leaf
+    leaf.parent.l = node
+  else
+    leaf.parent.r = node
+  end
+end
+
+DIGITS = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]
+
+def add(pair1, pair2)
+  pair = Node.new(pair1, pair2)
+  while explode(pair) || split_pair(pair)
+  end
+  pair
+end
+
+def magnitude(pair)
+  if pair.is_leaf
+    return pair.val
+  else
+    return 3 * magnitude(pair.l) + 2 * magnitude(pair.r)
   end
 end
