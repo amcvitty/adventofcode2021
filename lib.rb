@@ -134,3 +134,9 @@ def find_if_overlap(scanner, searching)
   end
   return nil
 end
+
+def manhattan_distance(a, b)
+  (a[0, 0] - b[0, 0]).abs +
+    (a[1, 0] - b[1, 0]).abs +
+    (a[2, 0] - b[2, 0]).abs
+end
