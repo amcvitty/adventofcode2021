@@ -1,39 +1,33 @@
 require_relative "lib.rb"
 
-scanners = read_scanners
-ordering = Array.new(scanners.size) { |i| i }
-# Loop precondition:
-# - everything before e has been explored for matches
-# - everything before u has found a match (with lower index) and been transformed
-# to coordinates relative to scanner[0]
-e = 0
-u = 1
-while u < scanners.size
-  (u..scanners.size - 1).each do |i|
-    puts "Looking for overlap  (#{e}, #{i})"
+lines = $stdin.read.split("\n")
 
-    res = find_if_overlap(scanners[e], scanners[i])
-
-    if res
-      if e == 3 && i == 4
-        puts scanners[e], scanners[i]
-      end
-      rot, disp = res
-      scanners[i] = scanners[i].map { |p| rot * p - disp }
-      puts "Got a hit: #{disp} - putting #{i} to #{u}"
-
-      tmp = scanners[u]
-      scanners[u] = scanners[i]
-      scanners[i] = tmp
-
-      tmp = ordering[u]
-      ordering[u] = ordering[i]
-      ordering[i] = tmp
-      puts "Ordering: #{ordering.to_s}"
-      u += 1
+algo = ""
+image = nil
+lines.each do |line|
+  if image.nil? # still processing algo
+    if line == ""
+      image = []
+    else
+      algo.concat line
     end
+  else
+    image << line.chars
   end
-  e += 1
 end
 
-puts scanners.reduce(&:union).size
+image = enlarge(image, 5, ".")
+puts algo.size
+puts image.size
+puts image[0].size
+draw(image)
+
+50.times do |i|
+  fillchar = i % 2 == 0 ? algo[0] : "."
+  image = enhance(image, algo, fillchar)
+  image = enlarge(image, 1, fillchar)
+
+  draw(image)
+  puts "----#{i + 1}----"
+end
+puts count_pixels(image)
