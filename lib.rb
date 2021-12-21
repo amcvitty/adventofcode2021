@@ -1,71 +1,75 @@
 require "matrix"
-require "set"
-
-def b_to_i(binary)
-  i = 0
-  binary.each do |c|
-    i = (i << 1) + (c == "#" ? 1 : 0)
+$verbose = true
+# Uses a seed to generate an infinite stream of digits in the base provided
+# Every seed will generate a different seed
+class DiracDice
+  def initialize(seed)
+    @seed = seed
+    @base = 10
   end
-  i
+
+  def seed
+    @seed
+  end
+
+  def roll
+    return nil if @seed == 0
+    r = @seed % @base
+    @seed = @seed / @base
+    r
+  end
 end
 
-def enhance(image, algo, fillchar)
-  rows = image.size
-  cols = image[0].size
-  newimage = []
-  rows.times { |r|
-    newrow = []
-    cols.times { |c|
-      if r == 0 || r == rows - 1 ||
-         c == 0 || c == cols - 1
-        newrow << fillchar
-      else
-        digits = [image[r - 1][c - 1],
-                  image[r - 1][c],
-                  image[r - 1][c + 1],
-                  image[r][c - 1],
-                  image[r][c],
-                  image[r][c + 1],
-                  image[r + 1][c - 1],
-                  image[r + 1][c],
-                  image[r + 1][c + 1]]
-        index = b_to_i(digits)
+class DeterministicDice
+  def initialize
+    @i = 0
+    @n = 100
+  end
 
-        newchar = algo[index]
-        newrow << newchar
+  def roll
+    @i = @i % @n + 1
+  end
+
+  def seed
+    "Deterministic:#{@n}"
+  end
+end
+
+def play_game(dice, start_positions, target)
+  puts "Playing game with #{dice.seed}" if $verbose
+  rolls = 0
+  positions = start_positions.map(&:itself)
+  players = positions.size
+  scores = Array.new(players, 0)
+  loop do |round|
+    players.times do |p|
+      d = [dice.roll()]
+      d << dice.roll()
+      d << dice.roll()
+
+      if d.any?(&:nil?)
+        puts "No winner" if $verbose
+        return nil
       end
-    }
-    newimage << newrow
-  }
-  newimage
+      rolls += 3
+
+      positions[p] = ((positions[p] + d.sum) - 1) % 10 + 1
+      scores[p] += positions[p]
+      if (scores[p] >= target)
+        puts "Player #{p + 1}  rolls: #{d.map(&:to_s).join("+")}  position: #{positions[p]} score #{scores[p]}" if $verbose
+        return Matrix[[(p + 1) % 2, p % 2]]
+      end
+    end
+  end
 end
 
-def draw(image)
-  image.each { |row|
-    puts row.join("")
-  }
-end
-
-def count_pixels(image)
-  image.flatten.sort.find_index "."
-end
-
-def enlarge(image, n, fillchar)
-  newimage = []
-  rows = image.size
-  cols = image[0].size
-
-  n.times {
-    newimage << Array.new(cols + 2 * n, fillchar)
-  }
-  image.each { |row|
-    n.times {
-      row = row.unshift(fillchar).push(fillchar)
-    }
-    newimage << row
-  }
-  n.times {
-    newimage << Array.new(cols + 2 * n, fillchar)
-  }
-  newimage
+def explore_games(seed, positions, target)
+  result = play_game(DiracDice.new(seed), positions, target)
+  if result.nil?
+    explore_games(seed * 10 + 1, positions, target) +
+      explore_games(seed * 10 + 2, positions, target) +
+      explore_games(seed * 10 + 3, positions, target)
+  else
+    result
+  end
 end

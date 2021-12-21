@@ -1,33 +1,12 @@
 require_relative "lib.rb"
 
-lines = $stdin.read.split("\n")
+# positions =
+puts play_game(DeterministicDice.new, [4, 8], 1000)
 
-algo = ""
-image = nil
-lines.each do |line|
-  if image.nil? # still processing algo
-    if line == ""
-      image = []
-    else
-      algo.concat line
-    end
-  else
-    image << line.chars
-  end
-end
+# Part 1:
+puts play_game(DeterministicDice.new, [8, 5], 1000)
 
-image = enlarge(image, 5, ".")
-puts algo.size
-puts image.size
-puts image[0].size
-draw(image)
+pos = [4, 8]
+# puts play_game(DiracDice.new(1111111111), pos, 9)
 
-50.times do |i|
-  fillchar = i % 2 == 0 ? algo[0] : "."
-  image = enhance(image, algo, fillchar)
-  image = enlarge(image, 1, fillchar)
-
-  draw(image)
-  puts "----#{i + 1}----"
-end
-puts count_pixels(image)
+# puts explore_games(0, pos, 21)
