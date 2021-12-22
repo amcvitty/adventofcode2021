@@ -3,10 +3,11 @@ require "matrix"
 require_relative "../lib.rb"
 
 RSpec.describe "code" do
-  it "adds" do
-    expect(add([1, 2], [5, 6])).to eq [6, 8]
-  end
-  it "multiplys" do
-    expect(multiply([1, 2], 4)).to eq [4, 8]
+  it "limits" do
+    expect(limit(-100, -75)).to eq 1..0
+    expect(limit(100, 175)).to eq 1..0
+    expect(limit(-100, 25)).to eq -50..25
+    expect(limit(-50, -50)).to eq -50..-50
+    expect(limit(50, 50)).to eq 50..50
   end
 end
