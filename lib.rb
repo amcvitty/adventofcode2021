@@ -82,13 +82,17 @@ end
 
 def parse_lines(lines)
   lines.map do |line|
-    d, x1, x2, y1, y2, z1, z2 = /(o\w+) x=(-?\d+)..(-?\d+),y=(-?\d+)..(-?\d+),z=(-?\d+)..(-?\d+)/.match(line).captures
-    x1, x2, y1, y2, z1, z2 = [x1, x2, y1, y2, z1, z2].map(&:to_i)
-
-    Node.new(x1..x2,
-             Node.new(y1..y2,
-                      Node.new(z1..z2, d)))
+    parse_line(line)
   end
+end
+
+def parse_line(line)
+  d, x1, x2, y1, y2, z1, z2 = /(o\w+) x=(-?\d+)..(-?\d+),y=(-?\d+)..(-?\d+),z=(-?\d+)..(-?\d+)/.match(line).captures
+  x1, x2, y1, y2, z1, z2 = [x1, x2, y1, y2, z1, z2].map(&:to_i)
+
+  Node.new(x1..x2,
+           Node.new(y1..y2,
+                    Node.new(z1..z2, d)))
 end
 
 def limit(a, b)
@@ -100,4 +104,19 @@ def limit(a, b)
     b = b > 50 ? 50 : (b < -50 ? -50 : b)
     return a..b
   end
+end
+
+def count(list, val)
+  sum = 0
+  list.each { |x|
+    x.val.each { |y|
+      y.val.each { |z|
+        # We now have a cuboid!
+        if z.val == val
+          sum += x.range.size * y.range.size * z.range.size
+        end
+      }
+    }
+  }
+  sum
 end
