@@ -19,7 +19,24 @@ RSpec.describe "code" do
     expect(l1.size).to eq 3
   end
 
-  it "cons with add" do
-    Node.new(1..5, "on") + Node.new(6..10, "off") + nil
+  it "inserts" do
+    list = nil
+    list = cons(Node.new(12..12, "on"), list)
+    list = cons(Node.new(8..10, "off"), list)
+    list = cons(Node.new(6..7, "on"), list)
+    list = cons(Node.new(4..5, "on"), list)
+    list = cons(Node.new(2..3, "off"), list)
+    list = cons(Node.new(1..1, "on"), list)
+
+    list2 = list
+
+    list = nil
+    list = insert(Node.new(1..10, "on"), list)
+    list = insert(Node.new(2..5, "off"), list)
+    list = insert(Node.new(8..10, "off"), list)
+    list = insert(Node.new(4..7, "on"), list)
+    list = insert(Node.new(12..12, "on"), list)
+
+    expect(list.to_s).to eq list2.to_s
   end
 end

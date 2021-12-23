@@ -21,15 +21,20 @@ List = Struct.new(:hd, :tail) do
   def size
     1 + (tail.nil? ? 0 : tail.size)
   end
+
+  def each(&block)
+    block.call(hd)
+    tail.each(&block) if tail
+  end
 end
 
 def cons(a, as)
   List.new(a, as)
 end
 
-Node = Struct.new(:range, :direction) do
+Node = Struct.new(:range, :val) do
   def to_s
-    "#{range}:#{direction}"
+    "#{range}:#{val}"
   end
 
   def +(other)
@@ -39,52 +44,50 @@ end
 
 def insert(b, list)
   if list.nil?
-    return cons(b, nil)
+    return cons(Node.new(b.range, merge(b.val, nil)), nil)
   end
 
-  # Crucial that b's direction overwrites a here
+  # Crucial that b's val overwrites a here
   a = list.hd
   ra = a.range
   rb = b.range
-  if ra.last < rb.first
-    cons a, insert(b, list.tail)
-  elsif ra.first > rb.last
-    cons b, list
-  elsif rb.cover?(ra)
-    cons b, list.tail
-  elsif rb.first <= ra.first && rb.last < ra.last
-    cons b, cons(Node.new(rb.last + 1..ra.last, a.direction), list.tail)
-  elsif rb.first > ra.first && rb.last < ra.last
-    cons(Node.new(ra.first..rb.first - 1, a.direction),
-         cons(b,
-              cons(Node.new(rb.last + 1..ra.last, a.direction),
-                   list.tail)))
-  elsif rb.first > ra.first && rb.last >= ra.last
-    cons(Node.new(ra.first..rb.first - 1, a.direction),
-         insert(b, list.tail))
-  else
-    throw "Didn't find option for #{ra}, #{rb}"
+
+  nodes = [Node.new(rb.first..[ra.first - 1, rb.last].min, merge(b.val, nil)),
+           Node.new([rb.first, ra.first].max..[rb.last, ra.last].min, merge(b.val, a.val)),
+           Node.new(ra.first..[rb.first - 1, ra.last].min, a.val),
+           Node.new([ra.first, rb.last + 1].max..ra.last, a.val)]
+    .filter { |n| n.range.size > 0 }
+    .sort! { |a, b| b.range.first <=> a.range.first }
+
+  # portion of b that comes after a - need to insert because could be more overlap in tail
+  unmerged = Node.new([rb.first, ra.last + 1].max..rb.last, b.val)
+  ret = list.tail
+  ret = insert(unmerged, list.tail) if unmerged.range.size > 0
+  nodes.each do |n|
+    ret = cons n, ret
   end
+  ret
 end
 
-# Square = Struct.new(:x1, :x2, :y1, :y2) do
-#   def contains?(x, y)
-#     (x1..x2).include?(x) && (y1..y2).include?(y)
-#   end
-
-#   def overlaps?(s)
-#     s.contains?(x1, y1) || s.contains?(x1, y2) ||
-#     s.contains?(x2, y1) || s.contains?(x2, y2) ||
-#     contains?(s.x1, s.y1) || contains?(s.x1, s.y2) ||
-#     contains?(s.x2, s.y1) || contains?(s.x2, s.y2)
-#   end
-# end
+# B takes precendence here
+def merge(b, a)
+  if b.is_a?(String) || b.is_a?(Integer)
+    b
+  elsif b.is_a?(Node) && (a.is_a?(List) || a.nil?)
+    insert(b, a)
+  else
+    throw "Unexpected types #{b.class} #{a.class}"
+  end
+end
 
 def parse_lines(lines)
   lines.map do |line|
     d, x1, x2, y1, y2, z1, z2 = /(o\w+) x=(-?\d+)..(-?\d+),y=(-?\d+)..(-?\d+),z=(-?\d+)..(-?\d+)/.match(line).captures
     x1, x2, y1, y2, z1, z2 = [x1, x2, y1, y2, z1, z2].map(&:to_i)
-    [d, x1, x2, y1, y2, z1, z2]
+
+    Node.new(x1..x2,
+             Node.new(y1..y2,
+                      Node.new(z1..z2, d)))
   end
 end
 
