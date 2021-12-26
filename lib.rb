@@ -1,126 +1,189 @@
-struct Move(:s, :f, :path) do
+def get_adj_matrix
+
+  # Mapping of places to numbers
+  #############
+  # 8 9   10   11   12   13 14#
+  ##### 1 #  3 #  5 #  7 ######
+  ##### 0 #  2 #  4 #  6 ######
+  #############
+
+  # Moves we can make
+  singles = [
+    [0, 1],
+    [2, 3],
+    [4, 5],
+    [6, 7],
+    [8, 9],
+    [13, 14],
+  ]
+
+  # These pass through the nodes where we can't stop
+  # at the top of each cave, so count for 2
+  doubles = [
+    [1, 9],
+    [1, 10],
+    [3, 10],
+    [3, 11],
+    [5, 11],
+    [5, 12],
+    [7, 12],
+    [7, 13],
+    [9, 10],
+    [10, 11],
+    [11, 12],
+    [12, 13],
+  ]
+  nodes = 15
+  adj = Array.new(nodes) { Array.new(nodes, nil) }
+
+  nodes.times.each { |v1|
+    nodes.times.each { |v2|
+      if singles.any? { |s|
+        (s[0] == v1 && s[1] == v2) ||
+        (s[0] == v2 && s[1] == v1)
+      }
+        x = adj[v1]
+        x[v2] = 1
+      end
+
+      if doubles.any? { |d| d[0] == v1 && d[1] == v2 || d[0] == v2 && d[1] == v1 }
+        adj[v1][v2] = 2
+      end
+    }
+  }
+
+  adj
 end
 
-# require "matrix"
+# Runs dijkstra's algo for numbered nodes
+# 0..adj.size from source. Returns [dist[], prev[]]
+def dijkstra(adj, source)
+  v_count = adj.size
+  dist = Array.new(v_count, 9999999)
+  prev = Array.new(v_count, nil)
+  q = Array.new(v_count) { |x| x }
+  dist[source] = 0
 
-# $verbose = false
+  while q.size > 0
+    # vertex in Q with min dist[u]
+    u = q.min_by { |u| dist[u] }
+    # remove u from Q
+    q.reject! { |x| x == u }
 
-# List = Struct.new(:hd, :tail) do
-#   def to_s
-#     if tail
-#       "#{hd},#{tail}"
-#     else
-#       hd.to_s
-#     end
-#   end
+    adj[u].each_with_index do |u_v, v|
+      if !u_v.nil? && dist[v] > dist[u] + u_v
+        dist[v] = dist[u] + u_v
+        prev[v] = u
+      end
+    end
+  end
 
-#   def ==(other)
-#     if other.nil? || other.hd != hd
-#       false
-#     else
-#       tail == other.tail
-#     end
-#   end
+  return [dist, prev]
+end
 
-#   def size
-#     1 + (tail.nil? ? 0 : tail.size)
-#   end
+# Get distance and prev arrays
+# for each vertex
+def get_dist_prev
+  adj = get_adj_matrix
 
-#   def each(&block)
-#     block.call(hd)
-#     tail.each(&block) if tail
-#   end
-# end
+  dist = []
+  prev = []
 
-# def cons(a, as)
-#   List.new(a, as)
-# end
+  adj.size.times { |v|
+    di, pi = dijkstra(adj, v)
+    dist << di
+    prev << pi
+  }
+  [dist, prev]
+end
 
-# Node = Struct.new(:range, :val) do
-#   def to_s
-#     "#{range}:#{val}"
-#   end
+def parse_stdin
+  lines = $stdin.read.split "\n"
 
-#   def +(other)
-#     cons(self, other)
-#   end
-# end
+  pos = Array.new(15, nil)
+  line1 = true
+  lines.each do |line|
+    m = /([A-D]).*([A-D]).*([A-D]).*([A-D]).*/.match(line)
+    next unless m
+    if line1
+      pos[1], pos[3], pos[5], pos[7] = m.captures
+      line1 = false
+    else
+      pos[0], pos[2], pos[4], pos[6] = m.captures
+    end
+  end
+  return pos
+end
 
-# def insert(b, list)
-#   if list.nil?
-#     return cons(Node.new(b.range, merge(b.val, nil)), nil)
-#   end
+def dump(state)
+  puts "#############"
+  puts "##{state[8] || "."}#{state[9] || "."}.#{state[10] || "."}.#{state[11] || "."}.#{state[12] || "."}.#{state[13] || "."}#{state[14] || "."}#"
+  puts "####{state[1] || "."}##{state[3] || "."}##{state[5] || "."}##{state[7] || "."}###"
+  puts "  ##{state[0] || "."}##{state[2] || "."}##{state[4] || "."}##{state[6] || "."}#"
+  puts "  #########"
+end
 
-#   # Crucial that b's val overwrites a here
-#   a = list.hd
-#   ra = a.range
-#   rb = b.range
+def blocked(state, prev, i, j)
+  # puts "Checking blocked: #{i} => #{j}"
+  loop do
+    if i == j
+      return false
+    end
+    if !state[j].nil?
+      return true
+    end
+    j = prev[i][j]
+  end
+  throw "No path found!"
+end
 
-#   nodes = [Node.new(rb.first..[ra.first - 1, rb.last].min, merge(b.val, nil)),
-#            Node.new([rb.first, ra.first].max..[rb.last, ra.last].min, merge(b.val, a.val)),
-#            Node.new(ra.first..[rb.first - 1, ra.last].min, a.val),
-#            Node.new([ra.first, rb.last + 1].max..ra.last, a.val)]
-#     .filter { |n| n.range.size > 0 }
-#     .sort! { |a, b| b.range.first <=> a.range.first }
+def move(state, i, j)
+  ret = state.map(&:itself)
+  ret[j] = state[i]
+  ret[i] = nil
+  ret
+end
 
-#   # portion of b that comes after a - need to insert because could be more overlap in tail
-#   unmerged = Node.new([rb.first, ra.last + 1].max..rb.last, b.val)
-#   ret = list.tail
-#   ret = insert(unmerged, list.tail) if unmerged.range.size > 0
-#   nodes.each do |n|
-#     ret = cons n, ret
-#   end
-#   ret
-# end
+$target = ["A", "A", "B", "B", "C", "C", "D", "D",
+           nil, nil, nil, nil, nil, nil, nil]
 
-# # B takes precendence here
-# def merge(b, a)
-#   if b.is_a?(String) || b.is_a?(Integer)
-#     b
-#   elsif b.is_a?(Node) && (a.is_a?(List) || a.nil?)
-#     insert(b, a)
-#   else
-#     throw "Unexpected types #{b.class} #{a.class}"
-#   end
-# end
+$home = {
+  "A" => [0, 1],
+  "B" => [2, 3],
+  "C" => [4, 5],
+  "D" => [6, 7],
+}
 
-# def parse_lines(lines)
-#   lines.map do |line|
-#     parse_line(line)
-#   end
-# end
+def valid_moves(state, dist, prev)
+  moves = []
+  15.times do |i|
+    next unless state[i]
+    next if $target[i] == state[i]
+    if i < 8
+      # in a cave
+      if i % 2 == 0
+        # trapped by one above (wee optimisation)
+        next unless state[i + 1].nil?
+      end
+      (8..14).each do |j|
+        moves << Move.new(state[i], i, j) unless blocked(state, prev, i, j)
+      end
+    else
+      # in the corridor, can only go to home
+      homes = $home[state[i]]
+      if state[homes[0]].nil?
+        moves << Move.new(state[i], i, homes[0]) unless blocked(state, prev, i, homes[0])
+      elsif state[homes[1]].nil?
+        next unless state[i] == state[homes[0]]
+        moves << Move.new(state[i], i, homes[1]) unless blocked(state, prev, i, homes[1])
+      end
+    end
+  end
+  moves
+end
 
-# def parse_line(line)
-#   d, x1, x2, y1, y2, z1, z2 = /(o\w+) x=(-?\d+)..(-?\d+),y=(-?\d+)..(-?\d+),z=(-?\d+)..(-?\d+)/.match(line).captures
-#   x1, x2, y1, y2, z1, z2 = [x1, x2, y1, y2, z1, z2].map(&:to_i)
-
-#   Node.new(x1..x2,
-#            Node.new(y1..y2,
-#                     Node.new(z1..z2, d)))
-# end
-
-# def limit(a, b)
-#   throw "not in order" if a > b
-#   if b < -50 or a > 50
-#     return 1..0
-#   else
-#     a = a > 50 ? 50 : (a < -50 ? -50 : a)
-#     b = b > 50 ? 50 : (b < -50 ? -50 : b)
-#     return a..b
-#   end
-# end
-
-# def count(list, val)
-#   sum = 0
-#   list.each { |x|
-#     x.val.each { |y|
-#       y.val.each { |z|
-#         # We now have a cuboid!
-#         if z.val == val
-#           sum += x.range.size * y.range.size * z.range.size
-#         end
-#       }
-#     }
-#   }
-#   sum
-# end
+Move = Struct.new(:m, :from, :to) do
+  def to_s
+    "#{m}: #{from}->#{to}"
+  end
+end
