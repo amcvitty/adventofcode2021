@@ -1,3 +1,6 @@
+require "pqueue"
+require "set"
+
 def get_adj_matrix
 
   # Mapping of places to numbers
@@ -154,22 +157,43 @@ $home = {
   "D" => [6, 7],
 }
 
-def valid_moves(state, dist, prev)
+def valid_moves(state, prev)
   moves = []
   15.times do |i|
     next unless state[i]
-    next if $target[i] == state[i]
+    if $target[i] == state[i]
+      # We're in the right cave
+      if i % 2 == 0
+        # At the bottom
+        next
+      else
+        # at the top, check the bottom too!
+        next if $target[i - 1] == state[i - 1]
+      end
+    end
     if i < 8
       # in a cave
       if i % 2 == 0
         # trapped by one above (wee optimisation)
         next unless state[i + 1].nil?
       end
+
+      # If we can go home in one move, do
+      homes = $home[state[i]]
+      if state[homes[0]].nil?
+        moves << Move.new(state[i], i, homes[0]) unless blocked(state, prev, i, homes[0])
+        next
+      elsif state[homes[1]].nil?
+        next unless state[i] == state[homes[0]]
+        moves << Move.new(state[i], i, homes[1]) unless blocked(state, prev, i, homes[1])
+        next
+      end
+
       (8..14).each do |j|
         moves << Move.new(state[i], i, j) unless blocked(state, prev, i, j)
       end
     else
-      # in the corridor, can only go to home
+      # We are in the corridor, all we can do is go home
       homes = $home[state[i]]
       if state[homes[0]].nil?
         moves << Move.new(state[i], i, homes[0]) unless blocked(state, prev, i, homes[0])
@@ -185,5 +209,26 @@ end
 Move = Struct.new(:m, :from, :to) do
   def to_s
     "#{m}: #{from}->#{to}"
+  end
+end
+
+class Queue
+  attr_accessor :points, :dist
+
+  def initialize(dist)
+    self.points = Set[]
+    self.dist = dist
+  end
+
+  def extract_min()
+    p = points.min_by { |v|
+      dist[v]
+    }
+    points.delete(p)
+    p
+  end
+
+  def add(p)
+    points.add(p)
   end
 end
