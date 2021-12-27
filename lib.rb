@@ -51,7 +51,7 @@ def get_adj_matrix
     [15, 21],
     [20, 21],
   ]
-  nodes = 22
+  nodes = 23
   adj = Array.new(nodes) { Array.new(nodes, nil) }
 
   nodes.times.each { |v1|
@@ -140,7 +140,6 @@ def dump(state)
 end
 
 def blocked(state, prev, i, j)
-  # puts "Checking blocked: #{i} => #{j}"
   loop do
     if i == j
       return false
@@ -179,8 +178,7 @@ $home = {
   "D" => [12, 13, 14, 15],
 }
 
-# TODO - valid moves still assuming there are 15 spots
-def valid_moves(state, prev)
+def valid_moves(state, prev, debug = false)
   moves = []
   23.times do |i|
     next unless state[i]
@@ -202,15 +200,13 @@ def valid_moves(state, prev)
         next unless state[i + 1].nil?
       end
 
-      # If we can go home in one move, do. TODO - this is the same as the one below, and will
-      # get too long to repeat! maybe get_home_move(state, prev, i)
       home_move = get_home_move(state, prev, i)
       if !home_move.nil?
         moves << home_move
         next
       end
 
-      (8..14).each do |j|
+      (16..22).each do |j|
         moves << Move.new(state[i], i, j) unless blocked(state, prev, i, j)
       end
     else
@@ -225,12 +221,12 @@ def valid_moves(state, prev)
   moves
 end
 
-def get_home_move(state, prev, i)
+def get_home_move(state, prev, i, debug = false)
   homes = $home[state[i]]
-
+  puts homes if debug
   homes.each do |j|
     if state[j].nil? && homes.filter { |h| h < j }.all? { |h|
-      $target[i - 1] == state[i - 1]
+      $target[h] == state[h]
     }
       return Move.new(state[i], i, j) unless blocked(state, prev, i, j)
     end
@@ -273,6 +269,7 @@ end
 # - priority
 # - hash (computed solely on val)
 # - eql?
+# For example the PQVal below!
 class PQueue
   attr_accessor :a
 
@@ -372,5 +369,30 @@ class PQueue
 
   def right(i)
     i + 1 << 1
+  end
+end
+
+class PQVal
+  attr_accessor :val, :priority
+
+  def initialize(val, priority)
+    @val = val
+    @priority = priority
+  end
+
+  def inspect
+    to_s
+  end
+
+  def to_s
+    "#{val}(#{priority})"
+  end
+
+  def hash
+    val.hash
+  end
+
+  def eql?(other)
+    !other.nil? && val.eql?(other.val)
   end
 end
