@@ -11,8 +11,12 @@ $energy_cost = {
   "C" => 100,
   "D" => 1000,
 }
-# dump(state)
-# dump(target)
+
+# dump($initial_state)
+# dump($target)
+# exit
+
+# puts dist[0]
 
 # state = move(state, 5, 8)
 # state = move(state, 3, 13)

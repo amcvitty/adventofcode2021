@@ -1,4 +1,3 @@
-require "pqueue"
 require "set"
 
 def get_adj_matrix
@@ -13,30 +12,46 @@ def get_adj_matrix
   # Moves we can make
   singles = [
     [0, 1],
+    [1, 2],
     [2, 3],
+
     [4, 5],
+    [5, 6],
     [6, 7],
+
     [8, 9],
+    [9, 10],
+    [10, 11],
+
+    [12, 13],
     [13, 14],
+    [14, 15],
+
+    [16, 17],
+    [21, 22],
+
   ]
 
   # These pass through the nodes where we can't stop
   # at the top of each cave, so count for 2
   doubles = [
-    [1, 9],
-    [1, 10],
-    [3, 10],
-    [3, 11],
-    [5, 11],
-    [5, 12],
-    [7, 12],
-    [7, 13],
-    [9, 10],
-    [10, 11],
-    [11, 12],
-    [12, 13],
+    [3, 17],
+    [3, 18],
+    [17, 18],
+
+    [7, 18],
+    [7, 19],
+    [18, 19],
+
+    [11, 19],
+    [11, 20],
+    [19, 20],
+
+    [15, 20],
+    [15, 21],
+    [20, 21],
   ]
-  nodes = 15
+  nodes = 22
   adj = Array.new(nodes) { Array.new(nodes, nil) }
 
   nodes.times.each { |v1|
@@ -103,26 +118,24 @@ end
 def parse_stdin
   lines = $stdin.read.split "\n"
 
-  pos = Array.new(15, nil)
-  line1 = true
+  pos = Array.new(23, nil)
+  c = 3
   lines.each do |line|
     m = /([A-D]).*([A-D]).*([A-D]).*([A-D]).*/.match(line)
     next unless m
-    if line1
-      pos[1], pos[3], pos[5], pos[7] = m.captures
-      line1 = false
-    else
-      pos[0], pos[2], pos[4], pos[6] = m.captures
-    end
+    pos[0 + c], pos[4 + c], pos[8 + c], pos[12 + c] = m.captures
+    c -= 1
   end
   return pos
 end
 
 def dump(state)
   puts "#############"
-  puts "##{state[8] || "."}#{state[9] || "."}.#{state[10] || "."}.#{state[11] || "."}.#{state[12] || "."}.#{state[13] || "."}#{state[14] || "."}#"
-  puts "####{state[1] || "."}##{state[3] || "."}##{state[5] || "."}##{state[7] || "."}###"
-  puts "  ##{state[0] || "."}##{state[2] || "."}##{state[4] || "."}##{state[6] || "."}#"
+  puts "##{state[16] || "."}#{state[17] || "."}.#{state[18] || "."}.#{state[19] || "."}.#{state[20] || "."}.#{state[21] || "."}#{state[22] || "."}#"
+  puts "####{state[3] || "."}##{state[7] || "."}##{state[11] || "."}##{state[15] || "."}###"
+  puts "  ##{state[2] || "."}##{state[6] || "."}##{state[10] || "."}##{state[14] || "."}#"
+  puts "  ##{state[1] || "."}##{state[5] || "."}##{state[9] || "."}##{state[13] || "."}#"
+  puts "  ##{state[0] || "."}##{state[4] || "."}##{state[8] || "."}##{state[12] || "."}#"
   puts "  #########"
 end
 
@@ -147,45 +160,53 @@ def move(state, i, j)
   ret
 end
 
-$target = ["A", "A", "B", "B", "C", "C", "D", "D",
-           nil, nil, nil, nil, nil, nil, nil]
+$target = [
+  "A", "A",
+  "A", "A",
+  "B", "B",
+  "B", "B",
+  "C", "C",
+  "C", "C",
+  "D", "D",
+  "D", "D",
+  nil, nil, nil, nil, nil, nil, nil,
+]
 
 $home = {
-  "A" => [0, 1],
-  "B" => [2, 3],
-  "C" => [4, 5],
-  "D" => [6, 7],
+  "A" => [0, 1, 2, 3],
+  "B" => [4, 5, 6, 7],
+  "C" => [8, 9, 10, 11],
+  "D" => [12, 13, 14, 15],
 }
 
+# TODO - valid moves still assuming there are 15 spots
 def valid_moves(state, prev)
   moves = []
-  15.times do |i|
+  23.times do |i|
     next unless state[i]
+    homes = $home[state[i]]
+
     if $target[i] == state[i]
       # We're in the right cave
-      if i % 2 == 0
-        # At the bottom
+      # No moves possible/necessary if everything below is  good
+      if homes.filter { |h| h < i }.all? { |h|
+        $target[i - 1] == state[i - 1]
+      }
         next
-      else
-        # at the top, check the bottom too!
-        next if $target[i - 1] == state[i - 1]
       end
     end
-    if i < 8
+    if i < 16
       # in a cave
-      if i % 2 == 0
+      if i % 4 != 3
         # trapped by one above (wee optimisation)
         next unless state[i + 1].nil?
       end
 
-      # If we can go home in one move, do
-      homes = $home[state[i]]
-      if state[homes[0]].nil?
-        moves << Move.new(state[i], i, homes[0]) unless blocked(state, prev, i, homes[0])
-        next
-      elsif state[homes[1]].nil?
-        next unless state[i] == state[homes[0]]
-        moves << Move.new(state[i], i, homes[1]) unless blocked(state, prev, i, homes[1])
+      # If we can go home in one move, do. TODO - this is the same as the one below, and will
+      # get too long to repeat! maybe get_home_move(state, prev, i)
+      home_move = get_home_move(state, prev, i)
+      if !home_move.nil?
+        moves << home_move
         next
       end
 
@@ -194,16 +215,27 @@ def valid_moves(state, prev)
       end
     else
       # We are in the corridor, all we can do is go home
-      homes = $home[state[i]]
-      if state[homes[0]].nil?
-        moves << Move.new(state[i], i, homes[0]) unless blocked(state, prev, i, homes[0])
-      elsif state[homes[1]].nil?
-        next unless state[i] == state[homes[0]]
-        moves << Move.new(state[i], i, homes[1]) unless blocked(state, prev, i, homes[1])
+      home_move = get_home_move(state, prev, i)
+      if !home_move.nil?
+        moves << home_move
+        next
       end
     end
   end
   moves
+end
+
+def get_home_move(state, prev, i)
+  homes = $home[state[i]]
+
+  homes.each do |j|
+    if state[j].nil? && homes.filter { |h| h < j }.all? { |h|
+      $target[i - 1] == state[i - 1]
+    }
+      return Move.new(state[i], i, j) unless blocked(state, prev, i, j)
+    end
+  end
+  nil
 end
 
 Move = Struct.new(:m, :from, :to) do
@@ -230,5 +262,75 @@ class Queue
 
   def add(p)
     points.add(p)
+  end
+end
+
+# Implementation broadly from Introduction to Algorithms (Cormen, Leiserson, Rivest 1985),
+# ch 7 building a  heap
+class PQueue
+  attr_accessor :a
+
+  def initialize(content = [], &cmp)
+    @a = content.dup
+    @cmp = cmp || proc { |a, b| a <=> b }
+    build_heap
+  end
+
+  def extract_max
+    if a.size == 0
+      return nil
+    end
+
+    max = a[0]
+    a[0] = a.pop
+    heapify(0)
+    return max
+  end
+
+  def insert(x)
+    i = a.size
+    while i > 0 && a[parent(i)] < x
+      a[i] = a[parent(i)]
+      i = parent(i)
+    end
+    a[i] = x
+  end
+
+  # Leaving as public for testing right now
+  # private
+
+  def heapify(i)
+    l = left(i)
+    r = right(i)
+    largest = i
+    largest = l if l < a.size && a[l] > a[largest]
+    largest = r if r < a.size && a[r] > a[largest]
+    if largest != i
+      tmp = a[i]
+      a[i] = a[largest]
+      a[largest] = tmp
+      heapify(largest)
+    end
+  end
+
+  def build_heap
+    # Bottom half (i > a.size/2) is already single-item heaps
+    i = a.size >> 1
+    while i >= 0
+      heapify(i)
+      i -= 1
+    end
+  end
+
+  def parent(i)
+    i - 1 >> 1
+  end
+
+  def left(i)
+    (i + 1 << 1) - 1
+  end
+
+  def right(i)
+    i + 1 << 1
   end
 end
