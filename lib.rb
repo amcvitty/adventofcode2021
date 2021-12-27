@@ -266,35 +266,71 @@ class Queue
 end
 
 # Implementation broadly from Introduction to Algorithms (Cormen, Leiserson, Rivest 1985),
-# ch 7 building a  heap
+# ch 7 building a heap
+
+# Items being added to the queue here should implement
+# - val
+# - priority
+# - hash (computed solely on val)
+# - eql?
 class PQueue
   attr_accessor :a
 
-  def initialize(content = [], &cmp)
+  def initialize(content = [])
     @a = content.dup
-    @cmp = cmp || proc { |a, b| a <=> b }
+    @hash = {}
     build_heap
+    @a.each_with_index do |item, index|
+      @hash.store(item, index)
+    end
   end
 
-  def extract_max
+  def extract_min
     if a.size == 0
       return nil
     end
 
+    if a.size == 1
+      @hash = {}
+      return a.shift
+    end
+
     max = a[0]
+    @hash.delete(max)
     a[0] = a.pop
+    @hash.store(a[0], 0)
+
     heapify(0)
     return max
   end
 
+  alias :pop :extract_min
+
   def insert(x)
-    i = a.size
-    while i > 0 && a[parent(i)] < x
+    current_pos = @hash[x]
+    if current_pos.nil?
+      i = a.size
+    else
+      i = current_pos
+      if a[i].priority < x.priority
+        throw "Can't increase priority"
+      end
+    end
+
+    while i > 0 && a[parent(i)].priority > x.priority
       a[i] = a[parent(i)]
+      @hash.store(a[i], i)
       i = parent(i)
     end
     a[i] = x
+    @hash.store(a[i], i)
   end
+
+  def size
+    @a.size
+  end
+
+  alias :<< :insert
 
   # Leaving as public for testing right now
   # private
@@ -303,12 +339,14 @@ class PQueue
     l = left(i)
     r = right(i)
     largest = i
-    largest = l if l < a.size && a[l] > a[largest]
-    largest = r if r < a.size && a[r] > a[largest]
+    largest = l if l < a.size && a[l].priority < a[largest].priority
+    largest = r if r < a.size && a[r].priority < a[largest].priority
     if largest != i
       tmp = a[i]
       a[i] = a[largest]
+      @hash.store(a[i], i)
       a[largest] = tmp
+      @hash.store(a[largest], largest)
       heapify(largest)
     end
   end
@@ -321,6 +359,8 @@ class PQueue
       i -= 1
     end
   end
+
+  private
 
   def parent(i)
     i - 1 >> 1
