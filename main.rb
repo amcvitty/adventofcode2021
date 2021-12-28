@@ -1,129 +1,128 @@
 require_relative "lib.rb"
 
-dist, prev = get_dist_prev
-# puts dist.map(&:to_s)
-# puts prev.map(&:to_s)
+lines = $stdin.read.split "\n"
 
-$initial_state = parse_stdin
-#####
-#
-# # This was me debugging based on the example. I had a bug in the most recent bit of code I changed of course!
-# state = $initial_state
+alu = Alu.new(lines)
 
-# $prev = prev
+## For 4,5 & 8,9
+##  1 8 1 5
+##  2 9 1 5
+# For Pair: 6, 7
+# 6 1: : 0
+# 7 2: : 0
+# 8 3: : 0
+# 9 4: : 0
+# For Pair: 5, 8
+# For Pair: 4, 9
+# For Pair: 3, 10
+# 9 1: : 0
+# For Pair: 2, 11
+# 1 1: : 0
+# 2 2: : 0
+# 3 3: : 0
+# 4 4: : 0
+# 5 5: : 0
+# 6 6: : 0
+# 7 7: : 0
+# 8 8: : 0
+# 9 9: : 0
+# For Pair: 1, 12
+# 1 6: : 0
+# 2 7: : 0
+# 3 8: : 0
+# 4 9: : 0
+# For Pair: 0, 13
 
-# def do_move(state, i, j)
-#   moves = valid_moves(state, $prev)
-#   unless moves.any? { |m| m.from == i && m.to == j }
-#     dump state
-#     puts state[i]
-#     puts get_home_move(state, $prev, i, true)
-#     puts moves
-#     throw "No move #{i}, #{j}"
+(1..9).each do |d0| # ???
+  (4..4).each do |d1|
+    (1..9).each do |d2|
+      # (9..9).each do |d3|
+      d3 = 9
+      (1..2).each do |d4|
+        # (1..9).each do |d5|
+        d5 = d4 + 7
+        (6..9).each do |d6|
+          # (1..4).each do |d7|
+          d7 = d6 - 5
+          (1..1).each do |d8|
+            (5..5).each do |d9|
+              # (1..1).each do |d10|
+              # (9..9).each do |d11|
+              # (9..9).each do |d12|
+
+              d10 = 1
+              d11 = d2
+              d12 = d1 + 5
+              (1..9).each do |d13| # ???
+                registers = [0, 0, 0, 0]
+                registers = alu.do_digit(d0, 0, 1, registers)
+                registers = alu.do_digit(d1, 1, 1, registers)
+                registers = alu.do_digit(d2, 2, 1, registers)
+                registers = alu.do_digit(d3, 3, 1, registers)
+                registers = alu.do_digit(d4, 4, 1, registers)
+                registers = alu.do_digit(d5, 5, 1, registers)
+                registers = alu.do_digit(d6, 6, 1, registers)
+                registers = alu.do_digit(d7, 7, 1, registers)
+                registers = alu.do_digit(d8, 8, 1, registers)
+                registers = alu.do_digit(d9, 9, 1, registers)
+                registers = alu.do_digit(d10, 10, 1, registers)
+                registers = alu.do_digit(d11, 11, 1, registers)
+                registers = alu.do_digit(d12, 12, 1, registers)
+                registers = alu.do_digit(d13, 13, 1, registers)
+
+                puts "#{d0} #{d13} #{registers[3]} " if registers[3] == 0
+              end
+            end
+          end
+          # end
+          #       end
+          #     end
+          #   end
+          # end
+          # end
+        end
+      end
+    end
+  end
+end
+exit
+# (1..9).each do |d6|
+#   (1..9).each do |d7|
+#     registers = alu.do_digit(d6 * 10 + d7, 6, 2) #, [0, 0, 0, encode_alphabet("BHFDKC")])
+#     puts "#{d6} #{d7}: #{decode_alphabet(registers[3])}: #{registers[3]}"
 #   end
-#   move(state, i, j)
 # end
-#
-# state = do_move(state, 15, 22)
-# state = do_move(state, 14, 16)
-# state = do_move(state, 11, 21)
-# state = do_move(state, 10, 20)
-# state = do_move(state, 9, 17)
-# state = do_move(state, 7, 9)
-# state = do_move(state, 6, 10)
-# state = do_move(state, 5, 19)
-# state = do_move(state, 4, 18)
-# state = do_move(state, 19, 4)
-# state = do_move(state, 20, 5)
-# state = do_move(state, 21, 6)
-# state = do_move(state, 13, 11)
-# state = do_move(state, 12, 21)
-# state = do_move(state, 18, 12)
-# state = do_move(state, 3, 7)
-# state = do_move(state, 2, 13)
-# state = do_move(state, 1, 18)
-# state = do_move(state, 17, 1)
-# state = do_move(state, 16, 2)
-# state = do_move(state, 18, 14)
-# state = do_move(state, 21, 3)
-# state = do_move(state, 22, 15)
-# dump state
-# exit
-########
+def find_pair(alu, pos1)
+  pos2 = 13 - pos1
+  puts "For Pair: #{pos1}, #{pos2}"
+  (1..9).each do |d1|
+    (1..9).each do |d2|
+      registers = alu.do_digit(d1, pos1, 1) #, [0, 0, 0, encode_alphabet("BHFDKC")])
+      registers = alu.do_digit(d2, pos2, 1, registers)
 
-$energy_cost = {
-  "A" => 1,
-  "B" => 10,
-  "C" => 100,
-  "D" => 1000,
-}
-
-dump($initial_state)
-dump($target)
-
-puts dist.map(&:to_s)
-puts "---"
-puts prev.map(&:to_s)
-# exit
-
-# puts dist[0]
-
-# state = move(state, 5, 8)
-# state = move(state, 3, 13)
-# state = move(state, 4, 9)
-# dump(state)
-
-#### initialise single source(G, source)
-# where G = (v,e) is actually
-$energy = {}
-$predecessor = {}
-
-# u, v are Points in the graph
-# w is weight of edge from u to v
-def relax(u, v, w)
-  if $energy[v].nil? || $energy[v] > $energy[u] + w
-    $energy[v] = $energy[u] + w
-    $predecessor[v] = u
+      puts "#{d1} #{d2}: #{decode_alphabet(registers[3])}: #{registers[3]}" if registers[3] == 0
+    end
   end
 end
 
-# this is S - the vertices that have been explored
-explored = {}
-# this is Q of things discovered but not explored, keyed by their energy cost
-queue = PQueue.new
+find_pair(alu, 6)
+find_pair(alu, 5)
+find_pair(alu, 4)
+find_pair(alu, 3)
+find_pair(alu, 2)
+find_pair(alu, 1)
+find_pair(alu, 0)
 
-# our source is out initial state
-$energy[$initial_state] = 0
-count = 0
-u = $initial_state
-while !u.nil? && u != $target
-  count += 1
-  puts "Count: #{count}, state = #{u}, energy= #{$energy[u]}" if count % 1000 == 0
+puts "For Pair: 5,8"
+(1..9).each do |d4|
+  (1..9).each do |d5|
+    (1..9).each do |d8|
+      (1..9).each do |d9|
+        input = d4 * 100000 + d5 * 10000 + 7200 + d8 * 10 + d9
+        registers = alu.do_digit(input, 4, 6) #, [0, 0, 0, encode_alphabet("BHFDKC")])
 
-  explored[u] = true
-  valid_moves(u, prev).each { |move1|
-    v = move(u, move1.from, move1.to)
-    relax(u, v, $energy_cost[move1.m] * dist[move1.from][move1.to])
-    if !explored[v]
-      queue << PQVal.new(v, $energy[v])
+        puts "#{d1} #{d2}: #{decode_alphabet(registers[3])}: #{registers[3]}" if registers[3] == 0
+      end
     end
-  }
-
-  u = queue.extract_min
-  u = u.val unless u.nil?
+  end
 end
-
-# Dump the answer
-max_e = $target
-turns = []
-while max_e != nil
-  turns << max_e
-  max_e = $predecessor[max_e]
-end
-
-turns.reverse.each do |t|
-  dump t
-
-  puts "Energy: #{$energy[t]}"
-end
-puts "Moves: #{turns.size}"

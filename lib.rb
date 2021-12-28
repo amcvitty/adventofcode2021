@@ -1,398 +1,119 @@
-require "set"
+$debug = true
+Instruction = Struct.new(:op, :dest, :x, :indirect)
 
-def get_adj_matrix
+OP_CODES = ["inp",
+            "add",
+            "mul",
+            "div",
+            "mod",
+            "eql"]
 
-  # Mapping of places to numbers
-  #############
-  # 8 9   10   11   12   13 14#
-  ##### 1 #  3 #  5 #  7 ######
-  ##### 0 #  2 #  4 #  6 ######
-  #############
+OP_INP = 0
+OP_ADD = 1
+OP_MUL = 2
+OP_DIV = 3
+OP_MOD = 4
+OP_EQL = 5
 
-  # Moves we can make
-  singles = [
-    [0, 1],
-    [1, 2],
-    [2, 3],
+def read_line(line)
+  op, dest, x = line.split " "
+  if /-?\d+/.match(x)
+    x = x.to_i
+  elsif x.nil?
+  else
+    x = "wxyz".chars.find_index x
+    indirect = true
+  end
+  dest = "wxyz".chars.find_index dest
+  op = OP_CODES.find_index(op)
+  Instruction.new(op, dest, x, indirect)
+end
 
-    [4, 5],
-    [5, 6],
-    [6, 7],
+class Alu
+  attr_accessor :inx
 
-    [8, 9],
-    [9, 10],
-    [10, 11],
-
-    [12, 13],
-    [13, 14],
-    [14, 15],
-
-    [16, 17],
-    [21, 22],
-
-  ]
-
-  # These pass through the nodes where we can't stop
-  # at the top of each cave, so count for 2
-  doubles = [
-    [3, 17],
-    [3, 18],
-    [17, 18],
-
-    [7, 18],
-    [7, 19],
-    [18, 19],
-
-    [11, 19],
-    [11, 20],
-    [19, 20],
-
-    [15, 20],
-    [15, 21],
-    [20, 21],
-  ]
-  nodes = 23
-  adj = Array.new(nodes) { Array.new(nodes, nil) }
-
-  nodes.times.each { |v1|
-    nodes.times.each { |v2|
-      if singles.any? { |s|
-        (s[0] == v1 && s[1] == v2) ||
-        (s[0] == v2 && s[1] == v1)
-      }
-        x = adj[v1]
-        x[v2] = 1
+  def initialize(lines)
+    @inx = lines.map { |line| read_line(line) }
+    @inp_ix = []
+    @inx.each_with_index do |inx, ix|
+      if inx.op == OP_INP
+        @inp_ix << ix
       end
+    end
+  end
 
-      if doubles.any? { |d| d[0] == v1 && d[1] == v2 || d[0] == v2 && d[1] == v1 }
-        adj[v1][v2] = 2
-      end
+  def do_operate(input, from, to, registers = [0, 0, 0, 0])
+    input = input.to_s.chars.map(&:to_i)
+    @inx[from, to - from].each do |inx|
+      x = inx.indirect ? registers[inx.x] : inx.x
+      registers[inx.dest] = case inx.op
+        when OP_INP
+          input.shift
+        when OP_ADD
+          registers[inx.dest] + x
+        when OP_MUL
+          registers[inx.dest] * x
+        when OP_DIV
+          if x == 0
+            throw "Error in #{inx}: #{x} == 0"
+          end
+          registers[inx.dest] / x
+        when OP_MOD
+          if registers[inx.dest] < 0
+            throw "Error in #{inx}: #{registers[inx.dest]} < 0"
+          end
+          registers[inx.dest] % x
+        when OP_EQL
+          registers[inx.dest] == x ? 1 : 0
+        else
+          throw "Unrecognised op #{@inx} "
+        end
+    end
+    registers
+  end
+
+  def do_digit(input, start, digits, registers = [0, 0, 0, 0])
+    do_operate(input, @inp_ix[start],
+               @inp_ix[(start + digits >= @inp_ix.size) ? @inp_ix.size - 1 : start + digits],
+               registers)
+  end
+
+  def operate(input)
+    registers = do_operate(input, 0, @inx.size)
+    {
+      "w" => registers[0],
+      "x" => registers[1],
+      "y" => registers[2],
+      "z" => registers[3],
     }
-  }
-
-  adj
-end
-
-# Runs dijkstra's algo for numbered nodes
-# 0..adj.size from source. Returns [dist[], prev[]]
-def dijkstra(adj, source)
-  v_count = adj.size
-  dist = Array.new(v_count, 9999999)
-  prev = Array.new(v_count, nil)
-  q = Array.new(v_count) { |x| x }
-  dist[source] = 0
-
-  while q.size > 0
-    # vertex in Q with min dist[u]
-    u = q.min_by { |u| dist[u] }
-    # remove u from Q
-    q.reject! { |x| x == u }
-
-    adj[u].each_with_index do |u_v, v|
-      if !u_v.nil? && dist[v] > dist[u] + u_v
-        dist[v] = dist[u] + u_v
-        prev[v] = u
-      end
-    end
   end
 
-  return [dist, prev]
-end
-
-# Get distance and prev arrays
-# for each vertex
-def get_dist_prev
-  adj = get_adj_matrix
-
-  dist = []
-  prev = []
-
-  adj.size.times { |v|
-    di, pi = dijkstra(adj, v)
-    dist << di
-    prev << pi
-  }
-  [dist, prev]
-end
-
-def parse_stdin
-  lines = $stdin.read.split "\n"
-
-  pos = Array.new(23, nil)
-  c = 3
-  lines.each do |line|
-    m = /([A-D]).*([A-D]).*([A-D]).*([A-D]).*/.match(line)
-    next unless m
-    pos[0 + c], pos[4 + c], pos[8 + c], pos[12 + c] = m.captures
-    c -= 1
+  def test_z_digit(input, digits)
   end
-  return pos
-end
 
-def dump(state)
-  puts "#############"
-  puts "##{state[16] || "."}#{state[17] || "."}.#{state[18] || "."}.#{state[19] || "."}.#{state[20] || "."}.#{state[21] || "."}#{state[22] || "."}#"
-  puts "####{state[3] || "."}##{state[7] || "."}##{state[11] || "."}##{state[15] || "."}###"
-  puts "  ##{state[2] || "."}##{state[6] || "."}##{state[10] || "."}##{state[14] || "."}#"
-  puts "  ##{state[1] || "."}##{state[5] || "."}##{state[9] || "."}##{state[13] || "."}#"
-  puts "  ##{state[0] || "."}##{state[4] || "."}##{state[8] || "."}##{state[12] || "."}#"
-  puts "  #########"
-end
-
-def blocked(state, prev, i, j)
-  loop do
-    if i == j
-      return false
-    end
-    if !state[j].nil?
-      return true
-    end
-    j = prev[i][j]
-  end
-  throw "No path found!"
-end
-
-def move(state, i, j)
-  ret = state.map(&:itself)
-  ret[j] = state[i]
-  ret[i] = nil
-  ret
-end
-
-$target = [
-  "A", "A",
-  "A", "A",
-  "B", "B",
-  "B", "B",
-  "C", "C",
-  "C", "C",
-  "D", "D",
-  "D", "D",
-  nil, nil, nil, nil, nil, nil, nil,
-]
-
-$home = {
-  "A" => [0, 1, 2, 3],
-  "B" => [4, 5, 6, 7],
-  "C" => [8, 9, 10, 11],
-  "D" => [12, 13, 14, 15],
-}
-
-def valid_moves(state, prev, debug = false)
-  moves = []
-  23.times do |i|
-    next unless state[i]
-    homes = $home[state[i]]
-
-    if $target[i] == state[i]
-      # We're in the right cave
-      # No moves possible/necessary if everything below is  good
-      if homes.filter { |h| h < i }.all? { |h|
-        $target[i - 1] == state[i - 1]
-      }
-        next
-      end
-    end
-    if i < 16
-      # in a cave
-      if i % 4 != 3
-        # trapped by one above (wee optimisation)
-        next unless state[i + 1].nil?
-      end
-
-      home_move = get_home_move(state, prev, i)
-      if !home_move.nil?
-        moves << home_move
-        next
-      end
-
-      (16..22).each do |j|
-        moves << Move.new(state[i], i, j) unless blocked(state, prev, i, j)
-      end
-    else
-      # We are in the corridor, all we can do is go home
-      home_move = get_home_move(state, prev, i)
-      if !home_move.nil?
-        moves << home_move
-        next
-      end
-    end
-  end
-  moves
-end
-
-def get_home_move(state, prev, i, debug = false)
-  homes = $home[state[i]]
-  puts homes if debug
-  homes.each do |j|
-    if state[j].nil? && homes.filter { |h| h < j }.all? { |h|
-      $target[h] == state[h]
-    }
-      return Move.new(state[i], i, j) unless blocked(state, prev, i, j)
-    end
-  end
-  nil
-end
-
-Move = Struct.new(:m, :from, :to) do
-  def to_s
-    "#{m}: #{from}->#{to}"
+  def test_z(input)
+    registers = do_operate(input)
+    registers[3] == 0
   end
 end
 
-class Queue
-  attr_accessor :points, :dist
-
-  def initialize(dist)
-    self.points = Set[]
-    self.dist = dist
-  end
-
-  def extract_min()
-    p = points.min_by { |v|
-      dist[v]
-    }
-    points.delete(p)
-    p
-  end
-
-  def add(p)
-    points.add(p)
-  end
+def no_zeroes(n)
+  n.to_s.chars.none? { |x| x == "0" }
 end
 
-# Implementation broadly from Introduction to Algorithms (Cormen, Leiserson, Rivest 1985),
-# ch 7 building a heap
-
-# Items being added to the queue here should implement
-# - val
-# - priority
-# - hash (computed solely on val)
-# - eql?
-# For example the PQVal below!
-class PQueue
-  attr_accessor :a
-
-  def initialize(content = [])
-    @a = content.dup
-    @hash = {}
-    build_heap
-    @a.each_with_index do |item, index|
-      @hash.store(item, index)
-    end
+def decode_alphabet(n)
+  str = ""
+  while n > 0
+    str << ("A".."Z").to_a[n % 26]
+    n /= 26
   end
-
-  def extract_min
-    if a.size == 0
-      return nil
-    end
-
-    if a.size == 1
-      @hash = {}
-      return a.shift
-    end
-
-    max = a[0]
-    @hash.delete(max)
-    a[0] = a.pop
-    @hash.store(a[0], 0)
-
-    heapify(0)
-    return max
-  end
-
-  alias :pop :extract_min
-
-  def insert(x)
-    current_pos = @hash[x]
-    if current_pos.nil?
-      i = a.size
-    else
-      i = current_pos
-      if a[i].priority < x.priority
-        throw "Can't increase priority"
-      end
-    end
-
-    while i > 0 && a[parent(i)].priority > x.priority
-      a[i] = a[parent(i)]
-      @hash.store(a[i], i)
-      i = parent(i)
-    end
-    a[i] = x
-    @hash.store(a[i], i)
-  end
-
-  def size
-    @a.size
-  end
-
-  alias :<< :insert
-
-  # Leaving as public for testing right now
-  # private
-
-  def heapify(i)
-    l = left(i)
-    r = right(i)
-    largest = i
-    largest = l if l < a.size && a[l].priority < a[largest].priority
-    largest = r if r < a.size && a[r].priority < a[largest].priority
-    if largest != i
-      tmp = a[i]
-      a[i] = a[largest]
-      @hash.store(a[i], i)
-      a[largest] = tmp
-      @hash.store(a[largest], largest)
-      heapify(largest)
-    end
-  end
-
-  def build_heap
-    # Bottom half (i > a.size/2) is already single-item heaps
-    i = a.size >> 1
-    while i >= 0
-      heapify(i)
-      i -= 1
-    end
-  end
-
-  private
-
-  def parent(i)
-    i - 1 >> 1
-  end
-
-  def left(i)
-    (i + 1 << 1) - 1
-  end
-
-  def right(i)
-    i + 1 << 1
-  end
+  str.reverse
 end
 
-class PQVal
-  attr_accessor :val, :priority
-
-  def initialize(val, priority)
-    @val = val
-    @priority = priority
+def encode_alphabet(str)
+  n = 0
+  str.chars.each do |c|
+    n = n * 26 + ("A".."Z").to_a.find_index(c)
   end
-
-  def inspect
-    to_s
-  end
-
-  def to_s
-    "#{val}(#{priority})"
-  end
-
-  def hash
-    val.hash
-  end
-
-  def eql?(other)
-    !other.nil? && val.eql?(other.val)
-  end
+  n
 end
