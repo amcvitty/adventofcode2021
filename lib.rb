@@ -1,4 +1,5 @@
-$debug = true
+DEBUG = true
+
 Instruction = Struct.new(:op, :dest, :x, :indirect)
 
 OP_CODES = ["inp",
@@ -7,6 +8,7 @@ OP_CODES = ["inp",
             "div",
             "mod",
             "eql"]
+REGS = "wxyz".chars
 
 OP_INP = 0
 OP_ADD = 1
@@ -21,10 +23,10 @@ def read_line(line)
     x = x.to_i
   elsif x.nil?
   else
-    x = "wxyz".chars.find_index x
+    x = REGS.find_index x
     indirect = true
   end
-  dest = "wxyz".chars.find_index dest
+  dest = REGS.find_index dest
   op = OP_CODES.find_index(op)
   Instruction.new(op, dest, x, indirect)
 end
@@ -74,7 +76,7 @@ class Alu
 
   def do_digit(input, start, digits, registers = [0, 0, 0, 0])
     do_operate(input, @inp_ix[start],
-               @inp_ix[(start + digits >= @inp_ix.size) ? @inp_ix.size - 1 : start + digits],
+               (start + digits >= @inp_ix.size) ? @inx.size : @inp_ix[start + digits],
                registers)
   end
 
@@ -104,7 +106,7 @@ end
 def decode_alphabet(n)
   str = ""
   while n > 0
-    str << ("A".."Z").to_a[n % 26]
+    str << ("A".."Z").to_a[n % 26 - 1]
     n /= 26
   end
   str.reverse
@@ -113,7 +115,7 @@ end
 def encode_alphabet(str)
   n = 0
   str.chars.each do |c|
-    n = n * 26 + ("A".."Z").to_a.find_index(c)
+    n = n * 26 + ("A".."Z").to_a.find_index(c) + 1
   end
   n
 end

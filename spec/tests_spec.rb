@@ -68,10 +68,12 @@ RSpec.describe "Code" do
   end
 
   it "decodes" do
-    expect(decode_alphabet(27)).to eq "BB"
+    expect(decode_alphabet(27)).to eq "AA"
   end
 
   it "encodes" do
-    expect(decode_alphabet(33)).to eq "BH"
+    expect(encode_alphabet("A")).to eq 1
+    expect(encode_alphabet("AA")).to eq 27
+    expect(decode_alphabet(encode_alphabet("ABCDEFG"))).to eq "ABCDEFG"
   end
 end
