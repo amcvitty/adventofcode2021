@@ -1,54 +1,68 @@
 require_relative "lib.rb"
 
 lines = $stdin.read.split "\n"
+state = lines.map { |l| l.chars }
 
-alu = Alu.new(lines)
+def dump(state)
+  state.each do |l|
+    puts l.join("")
+  end
+  puts
+end
 
-# Manual inspection of the code suggests that there are 14 sets of 18 lines of
-# instructions, each of which will either push a letter on the stack or pop one
-# off if given the right combination of "head of stack" and "input digit". By
-# looking at the order of these, we see the pairs we need.
-$final_digits = Array.new(14, nil)
+def move_east(state, new_state, r, c)
+  rows = state.size
+  cols = state[0].size
+  if state[r][c] == ">"
+    c2 = (c + 1) % cols
+    if state[r][c2] == "."
+      new_state[r][c2] = ">"
+    else
+      new_state[r][c] = ">"
+    end
+  elsif state[r][c] == "v"
+    new_state[r][c] = "v"
+  end
+end
 
-def find_pair(alu, pos1, pos2)
-  puts "For Pair: #{pos1}, #{pos2}"
-  (1..9).each do |d1|
-    (1..9).each do |d2|
-      registers = alu.do_digit(d1, pos1, 1)
-      registers = alu.do_digit(d2, pos2, 1, registers)
+def move_south(state, new_state, r, c)
+  rows = state.size
+  cols = state[0].size
+  if state[r][c] == "v"
+    r2 = (r + 1) % rows
+    if state[r2][c] == "."
+      new_state[r2][c] = "v"
+    else
+      new_state[r][c] = "v"
+    end
+  elsif state[r][c] == ">"
+    new_state[r][c] = ">"
+  end
+end
 
-      # For part 1 we overwrite here and the max will be the last one left
-      if registers[3] == 0
-        puts "#{d1} #{d2}: #{decode_alphabet(registers[3])}: #{registers[3]}"
-        $final_digits[pos1] = d1
-        $final_digits[pos2] = d2
-        return
-      end
+puts "Initial state: "
+dump state
+i = 0
+while true
+  i += 1
+  new_state = Array.new(state.size) { Array.new(state[0].size, ".") }
+  state.size.times do |r|
+    state[0].size.times do |c|
+      move_east(state, new_state, r, c)
     end
   end
-end
+  new_state2 = Array.new(state.size) { Array.new(state[0].size, ".") }
 
-find_pair(alu, 0, 13)
-find_pair(alu, 1, 12)
-find_pair(alu, 2, 11)
-find_pair(alu, 3, 8)
-find_pair(alu, 4, 5)
-find_pair(alu, 9, 10)
-find_pair(alu, 6, 7)
-
-puts "Uppers"
-alu.inx.size.times do |i|
-  inx = alu.inx[i]
-  if [4].include?(i % 18) && inx.x == 1
-    print(i / 18, ": ", " ", alu.inx[i + 11].x, "\n")
+  new_state.size.times do |r|
+    new_state[0].size.times do |c|
+      move_south(new_state, new_state2, r, c)
+    end
   end
-end
-
-puts "Downers"
-alu.inx.size.times do |i|
-  inx = alu.inx[i]
-  if [4].include?(i % 18) && inx.x == 26
-    print(i / 18, ": ", alu.inx[i + 1].x, " ", alu.inx[i + 11].x, "\n")
+  puts "After #{i} steps: "
+  # dump new_state2
+  if state == new_state2
+    puts "No movement: #{i}"
+    break
   end
+  state = new_state2
 end
-puts $final_digits.map(&:to_s).join("").to_i
