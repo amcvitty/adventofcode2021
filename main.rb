@@ -22,6 +22,7 @@ def find_pair(alu, pos1, pos2)
         puts "#{d1} #{d2}: #{decode_alphabet(registers[3])}: #{registers[3]}"
         $final_digits[pos1] = d1
         $final_digits[pos2] = d2
+        return
       end
     end
   end
